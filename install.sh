@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="papercoat/papercoat"
+echo "  📄 PaperCoat Installer"
+echo ""
+
+# Quick path: Homebrew on macOS
+if [[ "$(uname)" == "Darwin" ]] && command -v brew &>/dev/null; then
+    echo "  → Installing via Homebrew..."
+    brew install malamutes/tap/papercoat
+    exit 0
+fi
+
+REPO="malamutes/papercoat"
 VERSION="${1:-latest}"
 INSTALL_DIR="${PAPERCOAT_INSTALL:-$HOME/.local/bin}"
 
