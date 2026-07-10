@@ -65,11 +65,23 @@ pub struct Args {
 fn papercoat_styles() -> clap::builder::Styles {
     use clap::builder::styling::{AnsiColor, Effects, Style};
     clap::builder::Styles::styled()
-        .header(Style::new().bold().fg_color(Some(AnsiColor::BrightMagenta.into())))
-        .usage(Style::new().bold().fg_color(Some(AnsiColor::BrightMagenta.into())))
+        .header(
+            Style::new()
+                .bold()
+                .fg_color(Some(AnsiColor::BrightMagenta.into())),
+        )
+        .usage(
+            Style::new()
+                .bold()
+                .fg_color(Some(AnsiColor::BrightMagenta.into())),
+        )
         .literal(Style::new().fg_color(Some(AnsiColor::Cyan.into())))
         .placeholder(Style::new().fg_color(Some(AnsiColor::BrightCyan.into())))
-        .error(Style::new().fg_color(Some(AnsiColor::Red.into())).effects(Effects::BOLD))
+        .error(
+            Style::new()
+                .fg_color(Some(AnsiColor::Red.into()))
+                .effects(Effects::BOLD),
+        )
         .valid(Style::new().fg_color(Some(AnsiColor::Green.into())))
         .invalid(Style::new().fg_color(Some(AnsiColor::Yellow.into())))
 }

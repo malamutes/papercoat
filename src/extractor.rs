@@ -4,6 +4,7 @@ use std::path::Path;
 pub struct ExtractedText {
     pub text: String,
     pub word_count: usize,
+    #[allow(dead_code)]
     pub char_count: usize,
 }
 

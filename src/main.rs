@@ -8,7 +8,7 @@ mod tui;
 
 use clap::Parser;
 use console::style;
-use indicatif::{ProgressBar, ProgressStyle, MultiProgress};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::path::{Path, PathBuf};
 
 const PURPLE: u8 = 99;
@@ -18,8 +18,11 @@ fn main() -> anyhow::Result<()> {
     let args = cli::Args::parse();
 
     // Launch TUI if no input and no action flags
-    if args.input.is_none() && !args.list_templates && !args.show_config
-        && args.config_set.is_none() && !args.config_reset
+    if args.input.is_none()
+        && !args.list_templates
+        && !args.show_config
+        && args.config_set.is_none()
+        && !args.config_reset
     {
         return tui::run_tui();
     }
@@ -45,7 +48,12 @@ fn main() -> anyhow::Result<()> {
                 _ => eprintln!("{} Unknown key: {}", style("!").red(), kv[0]),
             }
             cfg.save()?;
-            println!("  {} Set {} = {}", style("✓").green(), style(&kv[0]).cyan(), style(&kv[1]).yellow());
+            println!(
+                "  {} Set {} = {}",
+                style("✓").green(),
+                style(&kv[0]).cyan(),
+                style(&kv[1]).yellow()
+            );
         }
         return Ok(());
     }
@@ -109,7 +117,10 @@ fn print_banner() {
 }
 
 fn print_templates() {
-    println!("\n  {} Available Templates", style("✦").color256(PURPLE).bold());
+    println!(
+        "\n  {} Available Templates",
+        style("✦").color256(PURPLE).bold()
+    );
     println!("  {}", style("──────────────────────").dim());
     for t in templates::list() {
         println!(
@@ -124,10 +135,21 @@ fn print_templates() {
 
 fn print_config() {
     let cfg = config::Config::load();
-    println!("\n  {} PaperCoat Configuration", style("✦").color256(PURPLE).bold());
+    println!(
+        "\n  {} PaperCoat Configuration",
+        style("✦").color256(PURPLE).bold()
+    );
     println!("  {}", style("──────────────────────").dim());
-    println!("  {} {}", style("template:").cyan(), style(&cfg.template).white());
-    println!("  {} {}", style("format:").cyan(), style(&cfg.format).white());
+    println!(
+        "  {} {}",
+        style("template:").cyan(),
+        style(&cfg.template).white()
+    );
+    println!(
+        "  {} {}",
+        style("format:").cyan(),
+        style(&cfg.format).white()
+    );
     if let Some(t) = &cfg.title {
         println!("  {} {}", style("title:").cyan(), style(t).yellow());
     }
@@ -161,12 +183,10 @@ fn run_single(
     // Step 1: Extract
     let extract_pb = mp.add(ProgressBar::new(100));
     extract_pb.set_style(
-        ProgressStyle::with_template(
-            &format!(
-                "{{spinner:.{p}}} {{msg:.{p}}} {{bar:40.cyan/{p}}} {{percent}}%  ETA {{eta}}",
-                p = PURPLE
-            )
-        )
+        ProgressStyle::with_template(&format!(
+            "{{spinner:.{p}}} {{msg:.{p}}} {{bar:40.cyan/{p}}} {{percent}}%  ETA {{eta}}",
+            p = PURPLE
+        ))
         .unwrap()
         .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
         .progress_chars("━─"),
@@ -199,12 +219,10 @@ fn run_single(
     // Step 2: Transform
     let transform_pb = mp.add(ProgressBar::new(100));
     transform_pb.set_style(
-        ProgressStyle::with_template(
-            &format!(
-                "{{spinner:.{p}}} {{msg:.{p}}} {{bar:40.cyan/{p}}} {{percent}}%  ETA {{eta}}",
-                p = PURPLE
-            )
-        )
+        ProgressStyle::with_template(&format!(
+            "{{spinner:.{p}}} {{msg:.{p}}} {{bar:40.cyan/{p}}} {{percent}}%  ETA {{eta}}",
+            p = PURPLE
+        ))
         .unwrap()
         .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
         .progress_chars("━─"),
@@ -231,12 +249,10 @@ fn run_single(
     // Step 3: Render output
     let render_pb = mp.add(ProgressBar::new(100));
     render_pb.set_style(
-        ProgressStyle::with_template(
-            &format!(
-                "{{spinner:.{p}}} {{msg:.{p}}} {{bar:40.cyan/{p}}} {{percent}}%  ETA {{eta}}",
-                p = PURPLE
-            )
-        )
+        ProgressStyle::with_template(&format!(
+            "{{spinner:.{p}}} {{msg:.{p}}} {{bar:40.cyan/{p}}} {{percent}}%  ETA {{eta}}",
+            p = PURPLE
+        ))
         .unwrap()
         .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
         .progress_chars("━─"),
@@ -263,7 +279,7 @@ fn run_single(
                     style("✓").green(),
                     style("PDF generated").cyan()
                 ));
-                print_results(&paper, &pdf_path, "pdf", fmt, &template);
+                print_results(&paper, &pdf_path, "pdf", fmt, template);
 
                 if args.open {
                     open_file(&pdf_path);
@@ -274,7 +290,7 @@ fn run_single(
                     "{} LaTeX saved (pdflatex not found)",
                     style("!").yellow()
                 ));
-                print_results(&paper, &tex_path, "tex", fmt, &template);
+                print_results(&paper, &tex_path, "tex", fmt, template);
             }
         }
     } else {
@@ -286,10 +302,8 @@ fn run_single(
         let _pdf_path = match renderer::compile_latex(&output_path)? {
             Some(p) => {
                 render_pb.set_position(100);
-                render_pb.finish_with_message(format!(
-                    "{} LaTeX + PDF generated",
-                    style("✓").green()
-                ));
+                render_pb
+                    .finish_with_message(format!("{} LaTeX + PDF generated", style("✓").green()));
                 if args.open {
                     open_file(&p);
                 }
@@ -297,15 +311,12 @@ fn run_single(
             }
             None => {
                 render_pb.set_position(100);
-                render_pb.finish_with_message(format!(
-                    "{} LaTeX saved",
-                    style("✓").green()
-                ));
+                render_pb.finish_with_message(format!("{} LaTeX saved", style("✓").green()));
                 None
             }
         };
 
-        print_results(&paper, &output_path, "tex", fmt, &template);
+        print_results(&paper, &output_path, "tex", fmt, template);
     }
 
     mp.clear()?;
@@ -321,7 +332,11 @@ fn run_batch(
 ) -> anyhow::Result<()> {
     let pdfs: Vec<PathBuf> = glob_pdfs(dir);
     if pdfs.is_empty() {
-        eprintln!("  {} No PDFs found in {}", style("!").yellow(), dir.display());
+        eprintln!(
+            "  {} No PDFs found in {}",
+            style("!").yellow(),
+            dir.display()
+        );
         return Ok(());
     }
 
@@ -396,15 +411,28 @@ fn determine_output(input: &Path, output_override: Option<&str>, fmt: &str) -> P
     }
 }
 
-fn print_results(paper: &transformer::PaperData, output: &Path, output_fmt: &str, requested_fmt: &str, template: &str) {
+fn print_results(
+    paper: &transformer::PaperData,
+    output: &Path,
+    output_fmt: &str,
+    requested_fmt: &str,
+    template: &str,
+) {
     let size = output.metadata().map(|m| m.len()).unwrap_or(0);
 
     println!();
     println!("  {} Results", style("✦").color256(PURPLE).bold());
-    println!("  {}", style("──────────────────────────────────────────────").dim());
+    println!(
+        "  {}",
+        style("──────────────────────────────────────────────").dim()
+    );
 
     let name = output.file_name().unwrap().to_string_lossy();
-    println!("  {} {}", style("Output:").cyan(), style(name).green().bold());
+    println!(
+        "  {} {}",
+        style("Output:").cyan(),
+        style(name).green().bold()
+    );
 
     let fmt_display = if output_fmt == "pdf" {
         format!("PDF ({}p)", paper.page_count)
@@ -414,17 +442,61 @@ fn print_results(paper: &transformer::PaperData, output: &Path, output_fmt: &str
         "LaTeX".to_string()
     };
 
-    println!("  {} {}", style("Format:").cyan(), style(fmt_display).white());
-    println!("  {} {}", style("Size:").cyan(), style(format_size(size)).white());
-    println!("  {} {}", style("Words:").cyan(), style(format_count(paper.word_count)).white());
-    println!("  {} {}", style("Title:").cyan(), style(&paper.title).yellow());
-    println!("  {} {}", style("Author:").cyan(), style(&paper.author_line).white());
-    println!("  {} {}", style("Template:").cyan(), style(template).white());
-    println!("  {} {}", style("Journal:").cyan(), style(&paper.journal).magenta());
+    println!(
+        "  {} {}",
+        style("Format:").cyan(),
+        style(fmt_display).white()
+    );
+    println!(
+        "  {} {}",
+        style("Size:").cyan(),
+        style(format_size(size)).white()
+    );
+    println!(
+        "  {} {}",
+        style("Words:").cyan(),
+        style(format_count(paper.word_count)).white()
+    );
+    println!(
+        "  {} {}",
+        style("Title:").cyan(),
+        style(&paper.title).yellow()
+    );
+    println!(
+        "  {} {}",
+        style("Author:").cyan(),
+        style(&paper.author_line).white()
+    );
+    println!(
+        "  {} {}",
+        style("Template:").cyan(),
+        style(template).white()
+    );
+    println!(
+        "  {} {}",
+        style("Journal:").cyan(),
+        style(&paper.journal).magenta()
+    );
     println!("  {} {}", style("DOI:").cyan(), style(&paper.doi).dim());
-    println!("  {} {} {} {} {} {}", style("Vol:").cyan(), style(&paper.volume).white(), style("Iss:").cyan(), style(&paper.issue).white(), style("Pages:").cyan(), style(paper.page_count).white());
-    println!("  {} {}", style("Keywords:").cyan(), style(paper.keywords.join("; ")).dim());
-    println!("  {} {}", style("References:").cyan(), style(paper.references.len()).white());
+    println!(
+        "  {} {} {} {} {} {}",
+        style("Vol:").cyan(),
+        style(&paper.volume).white(),
+        style("Iss:").cyan(),
+        style(&paper.issue).white(),
+        style("Pages:").cyan(),
+        style(paper.page_count).white()
+    );
+    println!(
+        "  {} {}",
+        style("Keywords:").cyan(),
+        style(paper.keywords.join("; ")).dim()
+    );
+    println!(
+        "  {} {}",
+        style("References:").cyan(),
+        style(paper.references.len()).white()
+    );
     println!();
 }
 

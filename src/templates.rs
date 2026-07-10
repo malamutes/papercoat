@@ -20,10 +20,6 @@ pub fn list() -> Vec<Template> {
     ]
 }
 
-pub fn validate(name: &str) -> bool {
-    matches!(name, "default" | "nature" | "ieee")
-}
-
 pub fn get_preamble(template: &str, title: &str, author: &str) -> String {
     match template {
         "nature" => nature_preamble(title, author),

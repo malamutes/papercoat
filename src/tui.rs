@@ -83,7 +83,7 @@ impl App {
             let a_dir = a.is_dir();
             let b_dir = b.is_dir();
             if a_dir != b_dir {
-                b_dir.cmp(&a_dir)  // dirs first
+                b_dir.cmp(&a_dir) // dirs first
             } else {
                 a.file_name().cmp(&b.file_name())
             }
@@ -115,7 +115,10 @@ impl App {
             self.enter_dir(&entry);
         } else {
             self.selected_file = Some(entry.clone());
-            self.status = format!("📄 Selected: {}", entry.file_name().unwrap().to_string_lossy());
+            self.status = format!(
+                "📄 Selected: {}",
+                entry.file_name().unwrap().to_string_lossy()
+            );
             self.mode = AppMode::Preview;
             self.generate_paper(Some(&entry));
         }
@@ -141,12 +144,7 @@ impl App {
                 };
 
                 let page_count = crate::extractor::estimate_page_count(&path);
-                let paper = transformer::transform_text(
-                    &extracted.text,
-                    None,
-                    author,
-                    page_count,
-                );
+                let paper = transformer::transform_text(&extracted.text, None, author, page_count);
                 self.paper = Some(paper);
                 self.raw_text = Some(extracted.text);
                 self.status = format!(
@@ -180,41 +178,52 @@ impl App {
         };
 
         let template = templates::list()[self.template_index].name;
-        let fmt = if self.output_format == 0 { "tex" } else { "pdf" };
-        let output_path = path.with_file_name(format!(
-            "{}_academic.{}",
+        let fmt = if self.output_format == 0 {
+            "tex"
+        } else {
+            "pdf"
+        };
+        let output_tex = path.with_file_name(format!(
+            "{}_academic.tex",
             path.file_stem().unwrap().to_string_lossy(),
-            if fmt == "pdf" { "tex" } else { "tex" },
         ));
+        let output_path = if fmt == "pdf" {
+            path.with_file_name(format!(
+                "{}_academic.pdf",
+                path.file_stem().unwrap().to_string_lossy(),
+            ))
+        } else {
+            output_tex.clone()
+        };
 
         self.status = "⏳ Generating LaTeX...".to_string();
-        renderer::render_tex(paper, &output_path, template)?;
+        renderer::render_tex(paper, &output_tex, template)?;
 
         if fmt == "pdf" {
             self.status = "⏳ Compiling with pdflatex...".to_string();
-            match renderer::compile_latex(&output_path)? {
+            match renderer::compile_latex(&output_tex)? {
                 Some(_) => {
-                    self.status = format!("✅ Saved: {}.pdf", output_path.file_stem().unwrap().to_string_lossy());
+                    self.status = format!(
+                        "✅ Saved: {}.pdf",
+                        output_path.file_stem().unwrap().to_string_lossy()
+                    );
                 }
                 None => {
-                    self.status = format!("✅ Saved: {} (no pdflatex)", output_path.file_name().unwrap().to_string_lossy());
+                    self.status = format!(
+                        "✅ Saved: {} (no pdflatex)",
+                        output_tex.file_name().unwrap().to_string_lossy()
+                    );
                 }
             }
         } else {
-            self.status = format!("✅ Saved: {}", output_path.file_name().unwrap().to_string_lossy());
+            self.status = format!(
+                "✅ Saved: {}",
+                output_tex.file_name().unwrap().to_string_lossy()
+            );
         }
 
         self.done = true;
         Ok(())
-    }
-
-    fn template_name(&self) -> &str {
-        let templates = templates::list();
-        if self.template_index < templates.len() {
-            templates[self.template_index].name
-        } else {
-            "default"
-        }
     }
 }
 
@@ -268,10 +277,8 @@ fn handle_key(code: KeyCode, app: &mut App) -> Result<()> {
             KeyCode::Char('g') => {
                 app.selected_index = 0;
             }
-            KeyCode::Char('G') => {
-                if !app.entries.is_empty() {
-                    app.selected_index = app.entries.len() - 1;
-                }
+            KeyCode::Char('G') if !app.entries.is_empty() => {
+                app.selected_index = app.entries.len() - 1;
             }
             _ => {}
         },
@@ -325,10 +332,10 @@ fn draw(frame: &mut Frame, app: &mut App) {
     let main_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // title bar
-            Constraint::Min(1),     // main content
-            Constraint::Length(4),  // options bar
-            Constraint::Length(1),  // status bar
+            Constraint::Length(3), // title bar
+            Constraint::Min(1),    // main content
+            Constraint::Length(4), // options bar
+            Constraint::Length(1), // status bar
         ])
         .split(area);
 
@@ -343,14 +350,24 @@ fn draw(frame: &mut Frame, app: &mut App) {
 
 fn draw_title(frame: &mut Frame, area: Rect) {
     let title = Paragraph::new(Line::from(vec![
-        Span::styled("  PaperCoat ", Style::new().fg(PURPLE).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "  PaperCoat ",
+            Style::new().fg(PURPLE).add_modifier(Modifier::BOLD),
+        ),
         Span::styled("✦  ", Style::new().fg(PURPLE)),
-        Span::styled("Turn PDFs into academic papers", Style::new().fg(Color::Gray)),
+        Span::styled(
+            "Turn PDFs into academic papers",
+            Style::new().fg(Color::Gray),
+        ),
         Span::styled("  [", Style::new().fg(Color::DarkGray)),
         Span::styled("q", Style::new().fg(Color::Green)),
         Span::styled("uit]", Style::new().fg(Color::DarkGray)),
     ]))
-    .block(Block::default().borders(Borders::BOTTOM).border_style(Style::new().fg(PURPLE)));
+    .block(
+        Block::default()
+            .borders(Borders::BOTTOM)
+            .border_style(Style::new().fg(PURPLE)),
+    );
     frame.render_widget(title, area);
 }
 
@@ -370,7 +387,10 @@ fn draw_browser(frame: &mut Frame, area: Rect, app: &App) {
             let name = entry.file_name().unwrap().to_string_lossy();
             let prefix = if entry.is_dir() { "📁 " } else { "📄 " };
             let style = if i == app.selected_index {
-                Style::new().bg(INDIGO).fg(Color::White).add_modifier(Modifier::BOLD)
+                Style::new()
+                    .bg(INDIGO)
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD)
             } else if entry.is_dir() {
                 Style::new().fg(PURPLE)
             } else {
@@ -394,19 +414,33 @@ fn draw_browser(frame: &mut Frame, area: Rect, app: &App) {
 
     // Help panel
     let help_lines = vec![
-        Line::from(vec![Span::styled("↑/↓ or j/k  ", Style::new().fg(Color::Green)), Span::raw("Navigate")]),
-        Line::from(vec![Span::styled("Enter       ", Style::new().fg(Color::Green)), Span::raw("Open dir / Select PDF")]),
-        Line::from(vec![Span::styled("Backspace   ", Style::new().fg(Color::Green)), Span::raw("Go up")]),
-        Line::from(vec![Span::styled("g/G         ", Style::new().fg(Color::Green)), Span::raw("Top/Bottom")]),
-        Line::from(vec![Span::styled("q           ", Style::new().fg(Color::Green)), Span::raw("Quit")]),
+        Line::from(vec![
+            Span::styled("↑/↓ or j/k  ", Style::new().fg(Color::Green)),
+            Span::raw("Navigate"),
+        ]),
+        Line::from(vec![
+            Span::styled("Enter       ", Style::new().fg(Color::Green)),
+            Span::raw("Open dir / Select PDF"),
+        ]),
+        Line::from(vec![
+            Span::styled("Backspace   ", Style::new().fg(Color::Green)),
+            Span::raw("Go up"),
+        ]),
+        Line::from(vec![
+            Span::styled("g/G         ", Style::new().fg(Color::Green)),
+            Span::raw("Top/Bottom"),
+        ]),
+        Line::from(vec![
+            Span::styled("q           ", Style::new().fg(Color::Green)),
+            Span::raw("Quit"),
+        ]),
     ];
-    let help = Paragraph::new(Text::from(help_lines))
-        .block(
-            Block::default()
-                .title(" ⌨️  Controls ")
-                .borders(Borders::ALL)
-                .border_style(Style::new().fg(Color::DarkGray)),
-        );
+    let help = Paragraph::new(Text::from(help_lines)).block(
+        Block::default()
+            .title(" ⌨️  Controls ")
+            .borders(Borders::ALL)
+            .border_style(Style::new().fg(Color::DarkGray)),
+    );
     frame.render_widget(help, layout[1]);
 }
 
@@ -421,25 +455,38 @@ fn draw_preview(frame: &mut Frame, area: Rect, app: &App) {
 
     if let Some(paper) = &app.paper {
         preview_lines.push(Line::from(vec![
-            Span::styled("Title: ", Style::new().fg(PURPLE).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Title: ",
+                Style::new().fg(PURPLE).add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&paper.title),
         ]));
         preview_lines.push(Line::from(vec![
-            Span::styled("Authors: ", Style::new().fg(PURPLE).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Authors: ",
+                Style::new().fg(PURPLE).add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&paper.author_line),
         ]));
         preview_lines.push(Line::from(vec![
-            Span::styled("Words: ", Style::new().fg(PURPLE).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Words: ",
+                Style::new().fg(PURPLE).add_modifier(Modifier::BOLD),
+            ),
             Span::raw(format!("{}", paper.word_count)),
         ]));
         preview_lines.push(Line::from(vec![
-            Span::styled("Refs: ", Style::new().fg(PURPLE).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Refs: ",
+                Style::new().fg(PURPLE).add_modifier(Modifier::BOLD),
+            ),
             Span::raw(format!("{}", paper.references.len())),
         ]));
         preview_lines.push(Line::from(""));
-        preview_lines.push(Line::from(vec![
-            Span::styled("Abstract", Style::new().fg(INDIGO).add_modifier(Modifier::BOLD)),
-        ]));
+        preview_lines.push(Line::from(vec![Span::styled(
+            "Abstract",
+            Style::new().fg(INDIGO).add_modifier(Modifier::BOLD),
+        )]));
         preview_lines.push(Line::from(vec![
             Span::styled("  Background: ", Style::new().fg(Color::DarkGray)),
             Span::raw(truncate(&paper.abstract_sections.background, 120)),
@@ -453,22 +500,26 @@ fn draw_preview(frame: &mut Frame, area: Rect, app: &App) {
             Span::raw(truncate(&paper.abstract_sections.results, 120)),
         ]));
         preview_lines.push(Line::from(""));
-        preview_lines.push(Line::from(vec![
-            Span::styled("Sections", Style::new().fg(INDIGO).add_modifier(Modifier::BOLD)),
-        ]));
+        preview_lines.push(Line::from(vec![Span::styled(
+            "Sections",
+            Style::new().fg(INDIGO).add_modifier(Modifier::BOLD),
+        )]));
         for section in &paper.sections {
-            preview_lines.push(Line::from(vec![
-                Span::styled(format!("  📄 {}", section.heading), Style::new().fg(Color::White)),
-            ]));
+            preview_lines.push(Line::from(vec![Span::styled(
+                format!("  📄 {}", section.heading),
+                Style::new().fg(Color::White),
+            )]));
         }
     } else if app.generating {
-        preview_lines.push(Line::from(vec![
-            Span::styled("  Generating...", Style::new().fg(Color::Yellow)),
-        ]));
+        preview_lines.push(Line::from(vec![Span::styled(
+            "  Generating...",
+            Style::new().fg(Color::Yellow),
+        )]));
     } else {
-        preview_lines.push(Line::from(vec![
-            Span::styled("  Select a PDF to preview", Style::new().fg(Color::DarkGray)),
-        ]));
+        preview_lines.push(Line::from(vec![Span::styled(
+            "  Select a PDF to preview",
+            Style::new().fg(Color::DarkGray),
+        )]));
     }
 
     let preview = Paragraph::new(Text::from(preview_lines))
@@ -483,13 +534,16 @@ fn draw_preview(frame: &mut Frame, area: Rect, app: &App) {
 
     // Right: Controls
     let templates_list = templates::list();
-    let mut control_lines = vec![
-        Line::from(vec![
-            Span::styled("Template", Style::new().fg(PURPLE).add_modifier(Modifier::BOLD)),
-        ]),
-    ];
+    let mut control_lines = vec![Line::from(vec![Span::styled(
+        "Template",
+        Style::new().fg(PURPLE).add_modifier(Modifier::BOLD),
+    )])];
     for (i, t) in templates_list.iter().enumerate() {
-        let marker = if i == app.template_index { "▸ " } else { "  " };
+        let marker = if i == app.template_index {
+            "▸ "
+        } else {
+            "  "
+        };
         let style = if i == app.template_index {
             Style::new().fg(Color::White).add_modifier(Modifier::BOLD)
         } else {
@@ -501,9 +555,10 @@ fn draw_preview(frame: &mut Frame, area: Rect, app: &App) {
         ]));
     }
     control_lines.push(Line::from(""));
-    control_lines.push(Line::from(vec![
-        Span::styled("Format", Style::new().fg(PURPLE).add_modifier(Modifier::BOLD)),
-    ]));
+    control_lines.push(Line::from(vec![Span::styled(
+        "Format",
+        Style::new().fg(PURPLE).add_modifier(Modifier::BOLD),
+    )]));
     for (i, f) in FORMATS.iter().enumerate() {
         let marker = if i == app.output_format { "▸ " } else { "  " };
         let style = if i == app.output_format {
@@ -517,13 +572,12 @@ fn draw_preview(frame: &mut Frame, area: Rect, app: &App) {
         ]));
     }
 
-    let controls = Paragraph::new(Text::from(control_lines))
-        .block(
-            Block::default()
-                .title(" ⚙️  Options ")
-                .borders(Borders::ALL)
-                .border_style(Style::new().fg(PURPLE)),
-        );
+    let controls = Paragraph::new(Text::from(control_lines)).block(
+        Block::default()
+            .title(" ⚙️  Options ")
+            .borders(Borders::ALL)
+            .border_style(Style::new().fg(PURPLE)),
+    );
     frame.render_widget(controls, layout[1]);
 }
 
@@ -531,9 +585,8 @@ fn draw_options(frame: &mut Frame, area: Rect, app: &App) {
     let help = match app.mode {
         AppMode::Browse => "↑↓ Navigate  |  Enter Select  |  Backspace Up  |  q Quit".to_string(),
         AppMode::Preview => {
-            format!(
-                "↑↓ Template  |  ←→ Format  |  Enter Generate  |  r Regenerate  |  Esc Back  |  q Quit"
-            )
+            "↑↓ Template  |  ←→ Format  |  Enter Generate  |  r Regenerate  |  Esc Back  |  q Quit"
+                .to_string()
         }
     };
 
@@ -576,7 +629,11 @@ fn draw_status(frame: &mut Frame, area: Rect, app: &App) {
         Span::styled("  ", Style::new().fg(Color::DarkGray)),
         Span::styled(status, status_style),
     ]))
-    .block(Block::default().borders(Borders::TOP).border_style(Style::new().fg(PURPLE)));
+    .block(
+        Block::default()
+            .borders(Borders::TOP)
+            .border_style(Style::new().fg(PURPLE)),
+    );
     frame.render_widget(status_bar, area);
 }
 
